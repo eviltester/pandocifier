@@ -1,9 +1,7 @@
 import org.junit.Test;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,13 +22,14 @@ public class LeanPubPandocPreviewTest {
     public void createPreviewMVP() throws IOException {
 
         // for given a hardcoded path
-        String book_txt = "";
+        String book_txt="";
+
 
         // read the Book.txt file
         File book_txt_file = new File(book_txt);
 
         if(!book_txt_file.exists()){
-            throw new FileNotFoundException("Could not find file:" + book_txt_file.getAbsolutePath());
+            throw new FileNotFoundException("ERROR: Could not find file:" + book_txt_file.getAbsolutePath());
         }
 
 
@@ -61,7 +60,7 @@ public class LeanPubPandocPreviewTest {
                         if(fileToAdd.exists()){
                             filesToCollate.add(fileToAdd.getAbsolutePath());
                         }else{
-                            System.out.println("Does Not Exist");
+                            System.out.println("ERROR: File Does Not Exist. Did not add to file collation list");
                         }
                     }
                 }
@@ -104,6 +103,62 @@ public class LeanPubPandocPreviewTest {
 
         }
         leanpubpreview.close();
+
+
+        // find all the image files and copy them in
+        List<String> imagePaths = new ArrayList<String>();
+
+        for(String fileNameToWriteContents : filesToCollate){
+
+            lines = Files.readAllLines(Paths.get(fileNameToWriteContents));
+
+            for(String aLine : lines){
+                String theImagePath ="";
+                try{
+                    String isFileLine = aLine.trim();
+                    // rudimentary check does not support all image formats
+                    // http://pandoc.org/README.html#images
+                    // for now ![optional](path)
+                    // Used: where the image is in the same folder as the filename
+                    // Not tried with images in sub folder or in /images/ folder at Book.txt parent level
+                    if(isFileLine.startsWith("![")){
+                        // find the start of the path
+                        int startOfPath = isFileLine.indexOf("(");
+                        int endOfPath = isFileLine.indexOf(")");
+                        theImagePath = isFileLine.substring(startOfPath+1,endOfPath);
+
+                        Path rootOfTextFile = Paths.get(fileNameToWriteContents).getParent();
+                        File theImageFile = Paths.get(rootOfTextFile.toAbsolutePath().toString(), theImagePath).toFile();
+                        if(theImageFile.exists()){
+                            // copy the file
+                            System.out.println("Copy Image File:");
+                            System.out.println(theImageFile.getAbsolutePath());
+
+                            Path copyImageTo = Paths.get(pandoced.getParent(), theImagePath);
+                            System.out.println(copyImageTo.toAbsolutePath());
+                            Files.copy(theImageFile.toPath(), copyImageTo, StandardCopyOption.REPLACE_EXISTING);
+
+                        }else{
+                            System.out.println(String.format("ERROR: Could not file image file %s", theImageFile.getAbsolutePath()));
+                        }
+                    }
+
+
+
+                }catch(Exception e){
+                    e.printStackTrace();
+                    System.out.println("ERROR Issues processing image line:");
+                    System.out.println(aLine);
+                    System.out.println("File:");
+                    System.out.println(fileNameToWriteContents);
+                }
+
+            }
+
+
+        }
+        leanpubpreview.close();
+
 
         // output the command to generate the book to console
         System.out.println("pandoc leanpubpreview.md -f markdown -s -o leanpubpreview.pdf --toc");
