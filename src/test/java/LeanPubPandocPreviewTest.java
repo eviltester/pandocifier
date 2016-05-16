@@ -24,7 +24,6 @@ public class LeanPubPandocPreviewTest {
         // for given a hardcoded path
         String book_txt="";
 
-
         // read the Book.txt file
         File book_txt_file = new File(book_txt);
 
@@ -134,7 +133,12 @@ public class LeanPubPandocPreviewTest {
                             System.out.println("Copy Image File:");
                             System.out.println(theImageFile.getAbsolutePath());
 
+
                             Path copyImageTo = Paths.get(pandoced.getParent(), theImagePath);
+
+                            // make any subfolde paths if necessary
+                            copyImageTo.getParent().toFile().mkdirs();
+
                             System.out.println(copyImageTo.toAbsolutePath());
                             Files.copy(theImageFile.toPath(), copyImageTo, StandardCopyOption.REPLACE_EXISTING);
 
