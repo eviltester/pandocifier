@@ -1,8 +1,11 @@
+import com.compendiumdev.pandocifier.BookTxtFile;
+import com.compendiumdev.pandocifier.LeanPubMarkdownLineProcessor;
 import org.junit.Test;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.*;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -24,50 +27,13 @@ public class LeanPubPandocPreviewTest {
         // for given a hardcoded path
         String book_txt="";
 
-        // read the Book.txt file
-        File book_txt_file = new File(book_txt);
 
-        if(!book_txt_file.exists()){
-            throw new FileNotFoundException("ERROR: Could not find file:" + book_txt_file.getAbsolutePath());
-        }
+        BookTxtFile book_details = new BookTxtFile(book_txt);
+        book_details.readTheListOfContentFiles();
 
-
-
-        // create a list of File names from Book.txt
-        // experiment with the Java 1.8 readAllLines method
-        List<String> lines = Files.readAllLines(Paths.get(book_txt));
-
-        File book_txt_parent_folder = book_txt_file.getParentFile();
-
-        List<String> filesToCollate = new ArrayList<String>();
-
-        for(String aLine : lines){
-
-            String filePath;
-
-            if(aLine!=null){            // ignore any nulls
-                filePath = aLine;
-
-                filePath = filePath.trim();
-                if(filePath.length()>0){   // ignore any empty lines
-
-                    if(!filePath.startsWith("#")){    // ignore any comments
-
-                        File fileToAdd = new File(book_txt_parent_folder, filePath);
-                        System.out.println(fileToAdd.getAbsolutePath());
-
-                        if(fileToAdd.exists()){
-                            filesToCollate.add(fileToAdd.getAbsolutePath());
-                        }else{
-                            System.out.println("ERROR: File Does Not Exist. Did not add to file collation list");
-                        }
-                    }
-                }
-            }
-        }
 
         // create a folder called pandoced (if necessary)
-        File pandoced = new File(book_txt_parent_folder, "pandoced");
+        File pandoced = new File(book_details.getParentFolder(), "pandoced");
         pandoced.mkdirs();
 
         // create a new file in pandoced called leanpubpreview.md
@@ -83,19 +49,53 @@ public class LeanPubPandocPreviewTest {
                                                                 StandardOpenOption.WRITE,
                                                                 StandardOpenOption.APPEND);
 
-        for(String fileNameToWriteContents : filesToCollate){
 
-            BufferedReader reader = Files.newBufferedReader(
-                                                Paths.get(fileNameToWriteContents));
+        LeanPubMarkdownLineProcessor lineProcessor = new LeanPubMarkdownLineProcessor();
 
-            int BUFFER_SIZE = 1024 * 4;
-            char[] buffer = new char[BUFFER_SIZE];
-            int n = 0;
-            while (-1 != (n = reader.read(buffer))) {
-                leanpubpreview.write(buffer, 0, n);
+        for(String fileNameToWriteContents : book_details.contentFiles()){
+
+
+            // I need to process some of the information as we work through so we will have to process the lines one by one
+            List<String> lines  = Files.readAllLines(Paths.get(fileNameToWriteContents));
+
+            String state="LINE_PROCESSING"; // LINE_PROCESSING, EXPECTED_SOURCE_INCLUDE, SKIP_LINE
+            String lineCache="";
+
+            for(String aLine : lines){
+
+                if(state.contentEquals("EXPECTED_SOURCE_INCLUDE")){
+                    // if this line is not a "<<" source include then write the cache and clear it and go back to line processing
+                    if(!lineProcessor.isLineAnExternalSourceInclude(aLine)){
+                        leanpubpreview.write(lineCache);
+                        state="LINE_PROCESSING";
+                    }
+                }
+
+                if(lineProcessor.isLineAnExternalSourceInclude(aLine)){
+                    lineProcessor.mergeTheExternalCodeFileAsACodeBlock(aLine, fileNameToWriteContents, leanpubpreview);
+                    state="SKIP_LINE";
+                }
+
+                if(lineProcessor.isLineAnImage(aLine))
+                    lineProcessor.copyImageReferencedToImagesFolder(aLine, fileNameToWriteContents, pandoced.getParent());
+
+                if(lineProcessor.isLineAPossibleSourceDeclaration(aLine)){
+                    // remember it and cache the line so we can output it if the next line is not an external code import
+                    state="EXPECTED_SOURCE_INCLUDE";
+                    lineCache="";
+                    lineCache = String.format("%s\n", aLine);
+                }
+
+                switch (state){
+                    case "LINE_PROCESSING":
+                        leanpubpreview.write(aLine);
+                        leanpubpreview.newLine();
+                        break;
+                    case "SKIP_LINE":
+                        state="LINE_PROCESSING";
+                        break;
+                }
             }
-
-            reader.close();
 
             // write a blank line before adding the new file
             leanpubpreview.newLine();
@@ -104,67 +104,9 @@ public class LeanPubPandocPreviewTest {
         leanpubpreview.close();
 
 
-        // find all the image files and copy them in
-        List<String> imagePaths = new ArrayList<String>();
-
-        for(String fileNameToWriteContents : filesToCollate){
-
-            lines = Files.readAllLines(Paths.get(fileNameToWriteContents));
-
-            for(String aLine : lines){
-                String theImagePath ="";
-                try{
-                    String isFileLine = aLine.trim();
-                    // rudimentary check does not support all image formats
-                    // http://pandoc.org/README.html#images
-                    // for now ![optional](path)
-                    // Used: where the image is in the same folder as the filename
-                    // Not tried with images in sub folder or in /images/ folder at Book.txt parent level
-                    if(isFileLine.startsWith("![")){
-                        // find the start of the path
-                        int startOfPath = isFileLine.indexOf("(");
-                        int endOfPath = isFileLine.indexOf(")");
-                        theImagePath = isFileLine.substring(startOfPath+1,endOfPath);
-
-                        Path rootOfTextFile = Paths.get(fileNameToWriteContents).getParent();
-                        File theImageFile = Paths.get(rootOfTextFile.toAbsolutePath().toString(), theImagePath).toFile();
-                        if(theImageFile.exists()){
-                            // copy the file
-                            System.out.println("Copy Image File:");
-                            System.out.println(theImageFile.getAbsolutePath());
-
-
-                            Path copyImageTo = Paths.get(pandoced.getParent(), theImagePath);
-
-                            // make any subfolde paths if necessary
-                            copyImageTo.getParent().toFile().mkdirs();
-
-                            System.out.println(copyImageTo.toAbsolutePath());
-                            Files.copy(theImageFile.toPath(), copyImageTo, StandardCopyOption.REPLACE_EXISTING);
-
-                        }else{
-                            System.out.println(String.format("ERROR: Could not file image file %s", theImageFile.getAbsolutePath()));
-                        }
-                    }
-
-
-
-                }catch(Exception e){
-                    e.printStackTrace();
-                    System.out.println("ERROR Issues processing image line:");
-                    System.out.println(aLine);
-                    System.out.println("File:");
-                    System.out.println(fileNameToWriteContents);
-                }
-
-            }
-
-
-        }
-        leanpubpreview.close();
-
-
         // output the command to generate the book to console
         System.out.println("pandoc leanpubpreview.md -f markdown -s -o leanpubpreview.pdf --toc");
     }
+
+
 }
