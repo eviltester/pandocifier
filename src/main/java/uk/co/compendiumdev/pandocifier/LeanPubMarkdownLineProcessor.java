@@ -1,4 +1,4 @@
-package com.compendiumdev.pandocifier;
+package uk.co.compendiumdev.pandocifier;
 
 import java.io.BufferedWriter;
 import java.io.File;

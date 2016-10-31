@@ -1,4 +1,4 @@
-package com.compendiumdev.pandocifier;
+package uk.co.compendiumdev.pandocifier;
 
 import java.io.File;
 import java.io.IOException;

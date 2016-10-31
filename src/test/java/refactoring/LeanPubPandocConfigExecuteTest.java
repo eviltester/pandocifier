@@ -1,15 +1,28 @@
+package refactoring;
+
+import org.junit.Before;
+import org.junit.Test;
 import uk.co.compendiumdev.pandocifier.BookTxtFile;
 import uk.co.compendiumdev.pandocifier.LeanPubMarkdownLineProcessor;
-import org.junit.Test;
+import uk.co.compendiumdev.pandocifier.config.PandocifierConfig;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 
-public class LeanPubPandocPreviewTest {
+/*
+    Refactoring to a more 'strategic' implementation
+
+    - inject config
+    - externalise config
+
+ */
+public class LeanPubPandocConfigExecuteTest {
 
     // for given a hardcoded path
     // read the Book.txt file
@@ -19,28 +32,31 @@ public class LeanPubPandocPreviewTest {
     // write all the contents of the files from Book.txt into this file
     // output the command to generate the book to console
 
-    // note: this won't handle files with images at the moment
+    PandocifierConfig config;
+
+    @Before
+    public void injectableConfiguration(){
+
+        //String book_txt = "D:\\Users\\Alan\\Documents\\xp-dev\\buggyGames\\testingBuggyGamesManuscript\\trunk\\manuscript\\Book.txt";
+        config = new PandocifierConfig();
+        config.setInputFilePath("D:\\Users\\Alan\\Documents\\xp-dev\\eLearning\\tracksApiCaseStudy\\text\\Book.txt");
+        config.setPreviewFileName("leanpubpreview");
+        config.setTempFolderName("pandoced");
+        config.setPandocPath("c:\\users\\Alan\\AppData\\Local\\Pandoc\\pandoc.exe");
+    }
 
     @Test
     public void createPreviewMVP() throws IOException {
 
-        // for given a hardcoded path
-        //String book_txt="";
-        //String book_txt = "D:\\Users\\Alan\\Documents\\xp-dev\\buggyGames\\testingBuggyGamesManuscript\\trunk\\manuscript\\Book.txt";
-        String book_txt = "D:\\Users\\Alan\\Documents\\xp-dev\\eLearning\\tracksApiCaseStudy\\text\\Book.txt";
-
-
-
-        BookTxtFile book_details = new BookTxtFile(book_txt);
+        BookTxtFile book_details = new BookTxtFile(config.getInputFilePath());
         book_details.readTheListOfContentFiles();
 
-
         // create a folder called pandoced (if necessary)
-        File pandoced = new File(book_details.getParentFolder(), "pandoced");
-        pandoced.mkdirs();
+        File pandocfolder = new File(book_details.getParentFolder(), config.getTempFolderName());
+        pandocfolder.mkdirs();
 
         // create a new file in pandoced called leanpubpreview.md
-        pandoced = new File(pandoced, "leanpubpreview.md");
+        File pandoced = new File(pandocfolder, config.getPreviewFileName() + ".md");
         if(pandoced.exists()){
             pandoced.delete();
         }
@@ -51,7 +67,6 @@ public class LeanPubPandocPreviewTest {
         BufferedWriter leanpubpreview = Files.newBufferedWriter(pandoced.toPath(),
                                                                 StandardOpenOption.WRITE,
                                                                 StandardOpenOption.APPEND);
-
 
         LeanPubMarkdownLineProcessor lineProcessor = new LeanPubMarkdownLineProcessor();
 
@@ -108,7 +123,26 @@ public class LeanPubPandocPreviewTest {
 
 
         // output the command to generate the book to console
-        System.out.println("pandoc leanpubpreview.md -f markdown -s -o leanpubpreview.pdf --toc");
+        String inputFile =  config.getPreviewFileName() + ".md";
+        String outputFile =  config.getPreviewFileName() + ".pdf";
+
+        ProcessBuilder pb = new ProcessBuilder(config.getPandocPath(),
+                                inputFile, "-f", "markdown", "-s", "-o", outputFile, "--toc" );
+        pb.directory(pandocfolder);
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+
+        // output the command
+        for(String command : pb.command()){
+            System.out.print(command + " ");
+        }
+        System.out.println("");
+
+        Process p = pb.start();
+
+        // open output folder
+        Runtime.getRuntime().exec("explorer.exe "+ pandocfolder.getAbsolutePath());
+
     }
 
 
