@@ -1,9 +1,6 @@
-package refactoring;
+package uk.co.compendiumdev.pandocifier;
 
-import org.junit.Before;
-import org.junit.Test;
-import uk.co.compendiumdev.pandocifier.BookTxtFile;
-import uk.co.compendiumdev.pandocifier.LeanPubMarkdownLineProcessor;
+
 import uk.co.compendiumdev.pandocifier.config.PandocifierConfig;
 
 import java.io.BufferedWriter;
@@ -14,40 +11,15 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 
+public class Pandocifier {
 
-/*
-    Refactoring to a more 'strategic' implementation
+    private final PandocifierConfig config;
 
-    - inject config
-    - externalise config
-
- */
-public class LeanPubPandocConfigExecuteTest {
-
-    // for given a hardcoded path
-    // read the Book.txt file
-    // create a list of File names from Book.txt
-    // create a folder called pandoced (if necessary)
-    // create a new file in pandoced called leanpubpreview.md
-    // write all the contents of the files from Book.txt into this file
-    // output the command to generate the book to console
-
-    PandocifierConfig config;
-
-    @Before
-    public void injectableConfiguration(){
-
-        //String book_txt = "D:\\Users\\Alan\\Documents\\xp-dev\\buggyGames\\testingBuggyGamesManuscript\\trunk\\manuscript\\Book.txt";
-        config = new PandocifierConfig();
-        config.setInputFilePath("D:\\Users\\Alan\\Documents\\xp-dev\\eLearning\\tracksApiCaseStudy\\text\\Book.txt");
-        config.setPreviewFileName("leanpubpreview");
-        config.setTempFolderName("pandoced");
-        config.setPandocPath("c:\\users\\Alan\\AppData\\Local\\Pandoc\\pandoc.exe");
+    public Pandocifier(PandocifierConfig config) {
+        this.config = config;
     }
 
-    @Test
-    public void createPreviewMVP() throws IOException {
-
+    public void createPDF() throws IOException {
         BookTxtFile book_details = new BookTxtFile(config.getInputFilePath());
         book_details.readTheListOfContentFiles();
 
@@ -65,8 +37,8 @@ public class LeanPubPandocConfigExecuteTest {
         // write all the contents of the files from Book.txt into this file
 
         BufferedWriter leanpubpreview = Files.newBufferedWriter(pandoced.toPath(),
-                                                                StandardOpenOption.WRITE,
-                                                                StandardOpenOption.APPEND);
+                StandardOpenOption.WRITE,
+                StandardOpenOption.APPEND);
 
         LeanPubMarkdownLineProcessor lineProcessor = new LeanPubMarkdownLineProcessor();
 
@@ -127,7 +99,7 @@ public class LeanPubPandocConfigExecuteTest {
         String outputFile =  config.getPreviewFileName() + ".pdf";
 
         ProcessBuilder pb = new ProcessBuilder(config.getPandocPath(),
-                                inputFile, "-f", "markdown", "-s", "-o", outputFile, "--toc" );
+                inputFile, "-f", "markdown", "-s", "-o", outputFile, "--toc" );
         pb.directory(pandocfolder);
         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -142,8 +114,5 @@ public class LeanPubPandocConfigExecuteTest {
 
         // open output folder
         Runtime.getRuntime().exec("explorer.exe "+ pandocfolder.getAbsolutePath());
-
     }
-
-
 }
