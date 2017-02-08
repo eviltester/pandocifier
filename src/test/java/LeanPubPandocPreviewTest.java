@@ -16,8 +16,6 @@ public class LeanPubPandocPreviewTest {
     // write all the contents of the files from Book.txt into this file
     // output the command to generate the book to console
 
-    // note: this won't handle files with images at the moment
-
     @Ignore("Ignored because this is the MVP GUI for adhoc usage and interactive testing, not for running in the build")
     @Test
     public void createPreviewMVP() throws IOException {
@@ -37,5 +35,7 @@ public class LeanPubPandocPreviewTest {
         new PandocifierCLI().main(args);
 
     }
+
+
 
 }

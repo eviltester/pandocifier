@@ -41,6 +41,7 @@ public class Pandocifier {
                 StandardOpenOption.APPEND);
 
         LeanPubMarkdownLineProcessor lineProcessor = new LeanPubMarkdownLineProcessor();
+        lineProcessor.setMaxImagePath(config.getInputFilePath());
 
         for(String fileNameToWriteContents : book_details.contentFiles()){
 

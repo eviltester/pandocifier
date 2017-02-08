@@ -12,6 +12,12 @@ import java.util.List;
  * Created by Alan on 27/05/2016.
  */
 public class LeanPubMarkdownLineProcessor {
+    private String maxImagePath;    // the highest folder we will look for image files
+
+    public void setMaxImagePath(String maxImagePath) {
+        this.maxImagePath = maxImagePath;
+    }
+
     public void mergeTheExternalCodeFileAsACodeBlock(String aLine, String foundInThisFile, BufferedWriter outputFile) {
 
         String thePath ="";
@@ -95,23 +101,46 @@ public class LeanPubMarkdownLineProcessor {
                 theImagePath = isFileLine.substring(startOfPath+1,endOfPath);
 
                 Path rootOfTextFile = Paths.get(foundInThisFile).getParent();
-                File theImageFile = Paths.get(rootOfTextFile.toAbsolutePath().toString(), theImagePath).toFile();
-                if(theImageFile.exists()){
-                    // copy the file
-                    System.out.println("Copy Image File:");
-                    System.out.println(theImageFile.getAbsolutePath());
+
+                // traverse up the directories until found
+                Boolean abortFind = false;
+                Boolean foundFile = false;
+
+                File maxImagePathFile = new File(maxImagePath);
+
+                while(!abortFind && !foundFile){
+
+                    File book_txt = Paths.get(rootOfTextFile.toAbsolutePath().toString(), "Book.txt").toFile();
+
+                    // if we have reached the max path or we have found book.txt
+                    if(book_txt.getParent().equals(maxImagePathFile.getParent()) || book_txt.exists()){
+                        abortFind=true;
+                        // do not look any higher than the folder with Book.txt in it
+                    }
+
+                    File theImageFile = Paths.get(rootOfTextFile.toAbsolutePath().toString(), theImagePath).toFile();
+                    if(theImageFile.exists()){
+
+                        foundFile=true;
+
+                        // copy the file
+                        System.out.println("Copy Image File:");
+                        System.out.println(theImageFile.getAbsolutePath());
 
 
-                    Path copyImageTo = Paths.get(outputPathName, theImagePath);
+                        Path copyImageTo = Paths.get(outputPathName, theImagePath);
 
-                    // make any subfolde paths if necessary
-                    copyImageTo.getParent().toFile().mkdirs();
+                        // make any subfolder paths if necessary
+                        copyImageTo.getParent().toFile().mkdirs();
 
-                    System.out.println(copyImageTo.toAbsolutePath());
-                    Files.copy(theImageFile.toPath(), copyImageTo, StandardCopyOption.REPLACE_EXISTING);
+                        System.out.println(copyImageTo.toAbsolutePath());
+                        Files.copy(theImageFile.toPath(), copyImageTo, StandardCopyOption.REPLACE_EXISTING);
 
-                }else{
-                    System.out.println(String.format("ERROR: Could not file image file %s", theImageFile.getAbsolutePath()));
+                    }else{
+                        System.out.println(String.format("ERROR: Could not file image file %s", theImageFile.getAbsolutePath()));
+                        rootOfTextFile = rootOfTextFile.getParent(); // try next directory up in case we are in sub dirs
+                    }
+
                 }
             }
 
@@ -138,4 +167,6 @@ public class LeanPubMarkdownLineProcessor {
 
         return false;
     }
+
+
 }
