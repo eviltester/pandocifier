@@ -1,5 +1,8 @@
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import uk.co.compendiumdev.pandocifier.config.PandocifierConfig;
+import uk.co.compendiumdev.pandocifier.config.PandocifierConfigFileReader;
 import uk.co.compendiumdev.pandocifier.main.PandocifierCLI;
 
 import java.io.File;
@@ -22,7 +25,14 @@ public class LeanPubPandocPreviewTest {
 
         String args[] = { new File(System.getProperty("user.dir"),"pandocifier.properties").getAbsolutePath()};
 
+
         new PandocifierCLI().main(args);
+
+        String propertyFileName = args[0];
+        File propertyFile = new File(propertyFileName);
+        PandocifierConfig config = new PandocifierConfigFileReader().fromPropertyFile(propertyFile);
+
+        Assert.assertTrue(new File(config.getPreviewFileName()).exists());
 
     }
 
