@@ -24,8 +24,17 @@ public class Pandocifier {
         book_details.readTheListOfContentFiles();
 
         // create a folder called pandoced (if necessary)
-        File pandocfolder = new File(book_details.getParentFolder(), config.getTempFolderName());
-        pandocfolder.mkdirs();
+        // is the tempFolderName an actual path that exists?
+        File pandocfolder = new File(config.getTempFolderName());
+        if(pandocfolder.exists() && pandocfolder.isDirectory()){
+            // consider it an actual temp folder
+        }else{
+            // assume it is a name relative to the book.txt file
+            pandocfolder = new File(book_details.getParentFolder(), config.getTempFolderName());
+            pandocfolder.mkdirs();
+        }
+
+
 
         // create a new file in pandoced called leanpubpreview.md
         File pandoced = new File(pandocfolder, config.getPreviewFileName() + ".md");

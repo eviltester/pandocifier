@@ -40,11 +40,11 @@ public class BookFileReader {
                     if(!filePath.startsWith("#")){    // ignore any comments
 
                         File fileToAdd = new File(book_txt_parent_folder, filePath);
-                        System.out.println(fileToAdd.getAbsolutePath());
+                        System.out.println(fileToAdd.getCanonicalPath());
 
                         if(fileToAdd.exists()){
                             //filesToCollate.add(fileToAdd.getAbsolutePath());
-                            book_details.addFileToBookContents(fileToAdd.getAbsolutePath());
+                            book_details.addFileToBookContents(fileToAdd.getCanonicalPath());
                         }else{
                             System.out.println("ERROR: File Does Not Exist. Did not add to file collation list");
                         }
