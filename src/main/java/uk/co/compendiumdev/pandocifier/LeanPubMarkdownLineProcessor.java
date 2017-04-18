@@ -169,4 +169,17 @@ public class LeanPubMarkdownLineProcessor {
     }
 
 
+    public boolean isLineACodeBlock(String aLine) {
+        if(aLine==null)
+            return false;
+
+        String isFileLine = aLine.trim();
+
+        // IS IT A CODE BLOCK
+        if(isFileLine.startsWith("~~~~~~~")){
+            return true;
+        }
+
+        return false;
+    }
 }

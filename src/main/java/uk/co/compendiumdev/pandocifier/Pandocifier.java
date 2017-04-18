@@ -13,6 +13,9 @@ import java.util.List;
 
 public class Pandocifier {
 
+    // TODO: need to handle X> I> W> A> etc. and make >
+    // TODO: when processing above make sure no headings present in the quotes e.g. `> ## This breaks pandoc latex creation`
+
     private final PandocifierConfig config;
 
     public Pandocifier(PandocifierConfig config) {
@@ -65,7 +68,7 @@ public class Pandocifier {
 
                 if(state.contentEquals("EXPECTED_SOURCE_INCLUDE")){
                     // if this line is not a "<<" source include then write the cache and clear it and go back to line processing
-                    if(!lineProcessor.isLineAnExternalSourceInclude(aLine)){
+                    if(!lineProcessor.isLineAnExternalSourceInclude(aLine) && !lineProcessor.isLineACodeBlock(aLine)){
                         leanpubpreview.write(lineCache);
                         state="LINE_PROCESSING";
                     }
@@ -74,6 +77,12 @@ public class Pandocifier {
                 if(lineProcessor.isLineAnExternalSourceInclude(aLine)){
                     lineProcessor.mergeTheExternalCodeFileAsACodeBlock(aLine, fileNameToWriteContents, leanpubpreview);
                     state="SKIP_LINE";
+                }
+
+                if(lineProcessor.isLineACodeBlock(aLine)){
+                    // if line is a code block then we want the block, but not the header in the cache
+                    lineCache="";
+                    state="LINE_PROCESSING";
                 }
 
                 if(lineProcessor.isLineAnImage(aLine))
