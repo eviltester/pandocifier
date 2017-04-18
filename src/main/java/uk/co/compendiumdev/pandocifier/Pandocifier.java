@@ -13,8 +13,7 @@ import java.util.List;
 
 public class Pandocifier {
 
-    // TODO: need to handle X> I> W> A> etc. and make >
-    // TODO: when processing above make sure no headings present in the quotes e.g. `> ## This breaks pandoc latex creation`
+
 
     private final PandocifierConfig config;
 
@@ -66,6 +65,13 @@ public class Pandocifier {
 
             for(String aLine : lines){
 
+                if(lineProcessor.isLineAQuoteBlock(aLine)){
+                    if(!state.contentEquals("QUOTE_PROCESSING")){
+                        // first line of quote block processing
+                    }
+                    state="QUOTE_PROCESSING";
+                }
+
                 if(state.contentEquals("EXPECTED_SOURCE_INCLUDE")){
                     // if this line is not a "<<" source include then write the cache and clear it and go back to line processing
                     if(!lineProcessor.isLineAnExternalSourceInclude(aLine) && !lineProcessor.isLineACodeBlock(aLine)){
@@ -96,6 +102,12 @@ public class Pandocifier {
                 }
 
                 switch (state){
+                    case "QUOTE_PROCESSING":
+                        leanpubpreview.write(processedQuoteLine(aLine));
+                        leanpubpreview.newLine();
+                        //leanpubpreview.newLine();
+                        state="LINE_PROCESSING";
+                        break;
                     case "LINE_PROCESSING":
                         leanpubpreview.write(aLine);
                         leanpubpreview.newLine();
@@ -133,5 +145,30 @@ public class Pandocifier {
 
         // open output folder
         Runtime.getRuntime().exec("explorer.exe "+ pandocfolder.getAbsolutePath());
+    }
+
+    private String processedQuoteLine(String aLine) {
+
+        // need to handle X> I> W> A> etc. and make >
+        // when processing above make sure no headings present in the quotes e.g. `> ## This breaks pandoc latex creation`
+
+        String retLine= "";
+
+        if(aLine.length()>=3) {
+            retLine = aLine.substring(3);
+        }else{
+            retLine = "";
+        }
+
+        // yeah I know this is crude
+        if(retLine.startsWith("#")) {
+            retLine = retLine.replace("######", "");
+            retLine = retLine.replace("#####", "");
+            retLine = retLine.replace("####", "");
+            retLine = retLine.replace("###", "");
+            retLine = retLine.replace("##", "");
+            retLine = retLine.replace("#", "");
+        }
+        return "> " + retLine;
     }
 }

@@ -182,4 +182,23 @@ public class LeanPubMarkdownLineProcessor {
 
         return false;
     }
+
+    public boolean isLineAQuoteBlock(String aLine) {
+        if(aLine==null)
+            return false;
+
+        String isFileLine = aLine.trim();
+
+        // IS IT A QUOTE BLOCK
+        if (isFileLine.startsWith("A>") ||
+                isFileLine.startsWith("X>") ||
+                isFileLine.startsWith("I>") ||
+                isFileLine.startsWith("W>") ||
+                isFileLine.startsWith("T>")
+                ) {
+            return true;
+        }
+
+        return false;
+    }
 }
