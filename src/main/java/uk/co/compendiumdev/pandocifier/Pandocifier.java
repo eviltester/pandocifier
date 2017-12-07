@@ -143,8 +143,14 @@ public class Pandocifier {
 
         Process p = pb.start();
 
+        // TODO: make this step optional in the pandoc properties or command line
         // open output folder
-        Runtime.getRuntime().exec("explorer.exe "+ pandocfolder.getAbsolutePath());
+        String os = System.getProperty("os.name");
+        if(os.toLowerCase().startsWith("windows")) {
+            Runtime.getRuntime().exec("explorer.exe " + pandocfolder.getAbsolutePath());
+        }else{
+            Runtime.getRuntime().exec("open " + pandocfolder.getAbsolutePath());
+        }
     }
 
     private String processedQuoteLine(String aLine) {
